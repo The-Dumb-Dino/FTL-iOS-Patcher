@@ -14,6 +14,14 @@ The patcher run on all major Desktop platforms with a future web version planned
 - **Modding:** FTL mods can be applied using [ftlman](https://github.com/afishhh/ftlman), [FTL: Hyperspace](https://github.com/FTL-Hyperspace/FTL-Hyperspace) can optionally be enabled too for mods like [FTL: Multiverse](https://ftlmultiverse.boards.net/) or Hyperspace improvements.
 
 Tested on an official Apple iOS 27.2 Simulator for iPhones, iPads and the iPhone Duo aswell as my personal M1 iPad Air, with Hyperspace 1.23.2 and Multiverse 5.5.1.
+### First run on virtual iPad:
+<img width="601.5" height="493" alt="grafik" src="https://github.com/user-attachments/assets/43b31386-922f-4a5c-b272-bb933d8f6fb6" />
+
+### iPhones:
+<img width="303" height="226" alt="grafik" src="https://github.com/user-attachments/assets/75db5bcc-1fb3-4464-9b77-c477a9f8c2bd" />
+<img width="303" height="226" alt="grafik" src="https://github.com/user-attachments/assets/83d6266f-ed5b-405a-b4d2-356980c694b3" />
+
+
 
 ## Usage
 
