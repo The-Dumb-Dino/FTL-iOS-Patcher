@@ -1,0 +1,8 @@
+.DS_Store
+*.ipa
+*.app/
+ftl.dat*
+files/
+files-simulator/
+dist/
+patcher/build*/

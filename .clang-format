@@ -1,0 +1,26 @@
+# The code style (C, Objective-C, C++): braces on their own line, 4-space indents.
+#   xcrun clang-format -i patcher/src/*.cpp patcher/src/*.h src/*.c src/*.m src/*.h
+BasedOnStyle: LLVM
+IndentWidth: 4
+ColumnLimit: 120
+BreakBeforeBraces: Allman
+AccessModifierOffset: -4
+IndentCaseLabels: true
+NamespaceIndentation: None
+PointerAlignment: Right
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortBlocksOnASingleLine: Never
+AllowShortIfStatementsOnASingleLine: WithoutElse
+AllowShortLoopsOnASingleLine: true
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortLambdasOnASingleLine: Inline
+AlignTrailingComments:
+  Kind: Leave
+AlignConsecutiveMacros: AcrossComments
+SortIncludes: Never
+ReflowComments: false
+ObjCBlockIndentWidth: 4
+---
+Language: ObjC
+---
+Language: Cpp

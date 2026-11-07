@@ -1,0 +1,2 @@
+// Windows resources: wxWidgets' manifest (current control styles, DPI awareness)
+#include "wx/msw/wx.rc"
