@@ -28,13 +28,16 @@
 
 #include "hooks.h"
 #include "hyperspace_host.h"
+#include "image.h"
 #include "prepatch.h"
-
-extern const struct mach_header_64 *_NSGetMachExecuteHeader(void);
 
 static bool gRunning;
 static hs_android_wants_right_click_fn gWantsRightClick;
 static hs_android_right_button_fn gRightButton;
+
+#ifdef FTL_IOS
+const char *IosGameDataFile(void) __attribute__((weak));  // ios.m: the ftl.dat the game reads
+#endif
 
 static void HsLog(int level, const char *msg)
 {
@@ -100,16 +103,30 @@ static size_t ImageSize(const struct mach_header_64 *h)
     return hi > lo ? hi - lo : 0;
 }
 
-// The app bundle's folder: the executable's.
+// The app bundle's folder: the game's file's. Its image knows where it was loaded from,
+// which is the guest app's file when a host (LiveContainer) runs it inside its process;
+// _NSGetExecutablePath, if that fails, is the guest's there too.
 static bool AppDir(char *out, size_t size)
 {
-    char exe[PATH_MAX];
-    uint32_t n = sizeof exe;
-    if (_NSGetExecutablePath(exe, &n) || !realpath(exe, out)) return false;
-    char *slash = strrchr(out, '/');
+    char exe[PATH_MAX], real[PATH_MAX];
+    const char *image = GameImagePath();
+    if (image)
+    {
+        if (strlen(image) >= sizeof exe) return false;
+        strcpy(exe, image);
+    }
+    else
+    {
+        uint32_t n = sizeof exe;
+        if (_NSGetExecutablePath(exe, &n)) return false;
+    }
+    if (!realpath(exe, real)) snprintf(real, sizeof real, "%s", exe);
+    char *slash = strrchr(real, '/');
     if (!slash) return false;
     *slash = 0;
-    return strlen(out) + 64 < size;
+    if (strlen(real) + 64 >= size) return false;
+    snprintf(out, size, "%s", real);
+    return true;
 }
 
 void HyperspaceStart(void)
@@ -120,6 +137,11 @@ void HyperspaceStart(void)
     snprintf(lib, sizeof lib, "%s", env ? env : "");
     if (!env) snprintf(lib, sizeof lib, "%s/Frameworks/Hyperspace.1.6.21.arm64.dylib", dir);
     snprintf(dat, sizeof dat, "%s/ftl.dat", dir);
+#ifdef FTL_IOS
+    // The game reads the copy in Documents (ios.m), which may not be the app's
+    const char *copy = IosGameDataFile ? IosGameDataFile() : NULL;
+    if (copy) snprintf(dat, sizeof dat, "%s", copy);
+#endif
     struct stat st;
     if (stat(lib, &st)) return;  // not installed
     // A prepatched game's code already jumps into Hyperspace's trampolines, so it has to start.
@@ -160,12 +182,17 @@ void HyperspaceStart(void)
         ShowError("Hyperspace", "This Hyperspace isn't built for the iPad game (no hs_android_init).");
         exit(1);
     }
-    const struct mach_header_64 *mh = _NSGetMachExecuteHeader();
+    const struct mach_header_64 *mh = GameImage();
+    if (!mh)
+    {
+        ShowError("Hyperspace", "FTL's own image couldn't be found in this process.");
+        exit(1);
+    }
     hs_host_info info = {
         .version = HS_HOST_VERSION,
         .size = sizeof info,
         .mach_header = mh,
-        .slide = (intptr_t)mh - 0x100000000,
+        .slide = GameSlide(),
         .image_size = ImageSize(mh),
         .log_dir = data,
         .data_dir = data,

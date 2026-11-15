@@ -18,17 +18,18 @@
 
 #include "prepatch.h"
 
+#include <limits.h>
 #include <mach-o/dyld.h>
 #include <mach-o/loader.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include "image.h"
+
 #define HOST_CODE  0x4000   // bytes of __HSTEXT for hooks.c
 #define ORIGINALS  0x4000   // bytes at the end of __HSTEXT for Hyperspace's table
 #define HOST_SLOTS 16      // pointers of __HSDATA for hooks.c
-
-extern const struct mach_header_64 *_NSGetMachExecuteHeader(void);
 
 static int gMode;
 static uint8_t *gCode, *gData;
@@ -49,8 +50,9 @@ static const struct segment_command_64 *FindSegment(const struct mach_header_64 
 
 void PrepatchInit(intptr_t slide)
 {
-    const struct mach_header_64 *h = _NSGetMachExecuteHeader();
-    const struct segment_command_64 *code = FindSegment(h, "__HSTEXT"), *data = FindSegment(h, "__HSDATA");
+    const struct mach_header_64 *h = GameImage();  // the game's, even when a host loaded it as a guest
+    const struct segment_command_64 *code = h ? FindSegment(h, "__HSTEXT") : NULL;
+    const struct segment_command_64 *data = h ? FindSegment(h, "__HSDATA") : NULL;
     if (!code || !data) return;
     gCode = (uint8_t *)(code->vmaddr + slide);
     gCodeSize = code->vmsize;
@@ -105,14 +107,27 @@ void PrepatchHyperspaceAreas(void **code, size_t *codeSize, void ***slots, size_
 void PrepatchRecordFinish(void)
 {
     if (gMode != PREPATCH_RECORD) return;
-    const struct mach_header_64 *h = _NSGetMachExecuteHeader();
-    const struct segment_command_64 *text = FindSegment(h, "__TEXT");
-    const struct section_64 *sect = (const void *)(text + 1), *codeSect = NULL;
+    const struct mach_header_64 *h = GameImage();
+    const struct segment_command_64 *text = h ? FindSegment(h, "__TEXT") : NULL;
+    const struct section_64 *sect = text ? (const void *)(text + 1) : NULL, *codeSect = NULL;
+    if (!sect)
+    {
+        fprintf(stderr, "[ftlios] prepatch: can't find the game in memory\n");
+        exit(1);
+    }
     for (uint32_t i = 0; i < text->nsects; i++)
         if (!strncmp(sect[i].sectname, "__text", 16)) codeSect = &sect[i];
-    char exe[4096];
-    uint32_t n = sizeof exe;
-    FILE *in = _NSGetExecutablePath(exe, &n) ? NULL : fopen(exe, "rb");
+    // The file the image was loaded from (a host like LiveContainer knows it too)
+    char exe[PATH_MAX] = "";
+    const char *image = GameImagePath();
+    if (image)
+        snprintf(exe, sizeof exe, "%s", image);
+    else
+    {
+        uint32_t n = sizeof exe;
+        if (_NSGetExecutablePath(exe, &n)) exe[0] = 0;
+    }
+    FILE *in = codeSect && exe[0] ? fopen(exe, "rb") : NULL;
     uint8_t *disk = codeSect ? malloc(codeSect->size) : NULL;
     if (!in || !disk || fseek(in, codeSect->offset, SEEK_SET) || fread(disk, 1, codeSect->size, in) != codeSect->size)
     {

@@ -6,6 +6,9 @@
 //    made that way or single .sav / settings.ini files, and undo the last import.
 //    The game only reads its saves when it starts, and iOS apps can't restart
 //    themselves, so FTL closes after an import.
+//  - Files: the game's data file (ftl.dat) and the logs, in Documents (ios.m). They're
+//    in the Files app; replacing ftl.dat there lets other apps patch the game, and the
+//    app's own can be put back.
 //  - Game Center: on or off (the game's own setting; it asks for it when Game
 //    Center doesn't answer, but has no page in the Settings app for it).
 //  - Troubleshooting: the last sessions' logs (ios.m) and Hyperspace's, as a zip.
@@ -233,8 +236,15 @@ static Row ChoiceItem(NSString *title, NSString *key, NSArray<NSString *> *choic
 {
     BOOL backup = [NSFileManager.defaultManager fileExistsAtPath:BackupDir()];
     NSDictionary *info = NSBundle.mainBundle.infoDictionary;
+    NSString *app = info[@"CFBundleDisplayName"] ?: info[@"CFBundleName"] ?: @"FTL";
+    NSDictionary *data = [NSFileManager.defaultManager
+        attributesOfItemAtPath:[IosGameDataDir() stringByAppendingPathComponent:@"ftl.dat"]
+                         error:nil];
+    NSString *dataDetail = data ? [NSByteCountFormatter stringFromByteCount:[data[NSFileSize] longLongValue]
+                                                                 countStyle:NSByteCountFormatterCountStyleFile]
+                                : @"Not copied yet";
     NSArray *autoOnOff = @[ @"Automatic (phones)", @"Always", @"Off" ];
-    _sections = @[ @"Touch", @"Zoom", @"Playing", @"Saves", @"Game Center", @"Troubleshooting", @"About" ];
+    _sections = @[ @"Touch", @"Zoom", @"Playing", @"Saves", @"Files", @"Game Center", @"Troubleshooting", @"About" ];
     _rows = @[
         @[
             ChoiceItem(@"Magnifier", kTouchMagnifier, autoOnOff),
@@ -258,6 +268,10 @@ static Row ChoiceItem(NSString *title, NSString *key, NSArray<NSString *> *choic
             RowItem(@"Restore Earlier Saves", backup ? @"From before the last import" : nil,
                     backup ? @selector(restoreSaves) : NULL),
         ],
+        @[
+            RowItem(@"ftl.dat", dataDetail, NULL),
+            RowItem(@"Use the App's ftl.dat", nil, data ? @selector(resetGameData) : NULL),
+        ],
         @[ FlagItem(@"Game Center", kGameCenter, YES) ],
         @[ RowItem(@"Save Logs…", nil, @selector(exportLogs)) ],
         @[
@@ -275,12 +289,20 @@ static Row ChoiceItem(NSString *title, NSString *key, NSArray<NSString *> *choic
         @"which hides the rest of the screen.",
         @"Larger event text makes the event window bigger too. Continuing the run at launch skips the title screen "
         @"when there's a run saved.",
-        [NSString stringWithFormat:@"Your run, profile (unlocks, achievements, scores) and settings are also in the Files "
-                                   @"app: On My %@ › %@. An import replaces the saves it contains; FTL closes afterwards "
-                                   @"so it can load them.", UIDevice.currentDevice.model,
-                                   info[@"CFBundleDisplayName"] ?: info[@"CFBundleName"] ?: @"FTL"],
+        [NSString
+            stringWithFormat:@"Your run, profile (unlocks, achievements, scores) and settings are also in the Files "
+                             @"app: On My %@ › %@. An import replaces the saves it contains; FTL closes afterwards "
+                             @"so it can load them.",
+                             UIDevice.currentDevice.model, app],
+        [NSString
+            stringWithFormat:@"The game's data file (ftl.dat) and the logs are in the Files app too: On My %@ › %@ › "
+                             @"Game Data and Logs. Other apps and computers can read and replace ftl.dat there; FTL "
+                             @"fixes up the images of mods in it when it starts. Using the app's ftl.dat removes "
+                             @"your copy, and the app's own is copied again the next time FTL starts.",
+                             UIDevice.currentDevice.model, app],
         @"Takes effect the next time FTL starts.",
-        @"The logs of the last three times FTL ran, and Hyperspace's. They help find out what went wrong.",
+        @"The logs of the last three times FTL ran, and Hyperspace's. They help find out what went wrong; they're in "
+        @"the Files app too, in Logs.",
         @"",
     ];
     [self.tableView reloadData];
@@ -580,6 +602,25 @@ static Row ChoiceItem(NSString *title, NSString *key, NSArray<NSString *> *choic
                                  [self
                                      closeFTL:@"Open FTL again from the Home Screen to play with your earlier saves."];
                              }]];
+    [self presentViewController:a animated:YES completion:nil];
+}
+
+// ---- ftl.dat
+
+- (void)resetGameData
+{
+    UIAlertController *a = [UIAlertController
+        alertControllerWithTitle:@"Use the App's ftl.dat?"
+                         message:@"This removes your copy in Game Data and puts the app's own ftl.dat back, undoing "
+                                 @"changes other apps made to it. Takes effect the next time FTL starts."
+                  preferredStyle:UIAlertControllerStyleAlert];
+    [a addAction:[UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:nil]];
+    [a addAction:[UIAlertAction actionWithTitle:@"Use the App's"
+                                          style:UIAlertActionStyleDestructive
+                                        handler:^(UIAlertAction *x) {
+                                            IosResetGameData();
+                                            [self reload];
+                                        }]];
     [self presentViewController:a animated:YES completion:nil];
 }
 

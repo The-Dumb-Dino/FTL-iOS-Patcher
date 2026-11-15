@@ -27,10 +27,9 @@
 #include "display.h"
 #include "game.h"
 #include "hyperspace.h"
+#include "image.h"
 #include "png.h"
 #include "prepatch.h"
-
-extern const struct mach_header_64 *_NSGetMachExecuteHeader(void);
 
 static intptr_t gSlide;
 static bool gOk;  // the known build, patched
@@ -275,19 +274,16 @@ static int HotkeyLookup(const void *action)
 // ---------------------------------------------------------------------------------
 // setup
 
-static const uint8_t KNOWN_UUID[16] = {0x87, 0x3d, 0x2b, 0x34, 0xd7, 0x07, 0x3d, 0x6b,
-                                       0xab, 0x83, 0x26, 0x7b, 0xf4, 0xc5, 0xbb, 0xc0};
-
-// Checks the build, sets the slide and the image's end.
+// Checks the build's base and sets the slide and the image's end. The image itself comes
+// from image.c, which finds it by UUID whether it's the process's executable or (a host
+// like LiveContainer) a guest app loaded as a dylib.
 static bool KnownBuild(const struct mach_header_64 *h)
 {
-    bool uuidOk = false;
     uint64_t textVmaddr = 0, end = 0;
     const uint8_t *lc = (const uint8_t *)(h + 1);
     for (uint32_t i = 0; i < h->ncmds; i++)
     {
         const struct load_command *c = (const void *)lc;
-        if (c->cmd == LC_UUID) uuidOk = !memcmp(((const struct uuid_command *)c)->uuid, KNOWN_UUID, 16);
         if (c->cmd == LC_SEGMENT_64)
         {
             const struct segment_command_64 *s = (const void *)c;
@@ -299,7 +295,7 @@ static bool KnownBuild(const struct mach_header_64 *h)
     gSlide = (intptr_t)h - (intptr_t)textVmaddr;
     gImageStart = (uintptr_t)h;
     gImageEnd = (uintptr_t)(end + gSlide);
-    return uuidOk && textVmaddr == 0x100000000ull;
+    return textVmaddr == 0x100000000ull;  // game.h's addresses are from there
 }
 
 // Whether the code at addr is what this build has there (`n` words). A prepatched
@@ -313,8 +309,8 @@ static bool Expect(uint64_t addr, const uint32_t *words, size_t n)
 static void Apply(void)
 {
     gDebug = getenv("FTLMAC_DEBUG") != NULL;
-    const struct mach_header_64 *h = _NSGetMachExecuteHeader();
-    if (!h || h->magic != MH_MAGIC_64 || !KnownBuild(h))
+    const struct mach_header_64 *h = GameImage();
+    if (!h || !KnownBuild(h))
     {
         fprintf(stderr, "[ftlios] not the FTL 1.6.21 iPad build; keyboard and logger hooks disabled\n");
         return;
@@ -387,11 +383,15 @@ static void Apply(void)
 
 // Runs before the game's main(), while only this thread exists. Hyperspace hooks
 // the game after these patches (some of the same functions), as on ftl-linux.
-void IosStartLog(void) __attribute__((weak));  // ios.m: the session log (iOS)
+void IosStartLog(void) __attribute__((weak));          // ios.m: the session log (iOS)
+void IosPrepareGameData(void) __attribute__((weak));  // ios.m: Documents/Game Data/ftl.dat (iOS)
+void IosMakeFilesUsable(void) __attribute__((weak));  // ios.m: the game's files in Documents (iOS)
 
 __attribute__((constructor)) static void HooksInit(void)
 {
     if (IosStartLog) IosStartLog();
+    if (IosPrepareGameData) IosPrepareGameData();
+    if (IosMakeFilesUsable) IosMakeFilesUsable();
     Apply();
     DisplayInstall();
     HyperspaceStart();

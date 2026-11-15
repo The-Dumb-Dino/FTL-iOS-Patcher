@@ -37,9 +37,9 @@ namespace
 {
 
 const fs::path ROOT = fs::weakly_canonical(FTL_SOURCE_ROOT);  // the repository (CMake sets it)
-const char *SOURCES[] = {"hooks.c", "png.c", "hyperspace.c", "prepatch.c", "display.c"};
-const char *IOS_SOURCES[] = {"ios.m", "settings.m", "touch.m",
-                             "gltex.c"};  // scenes, saves, logs; settings; touch; big textures
+const char *SOURCES[] = {"hooks.c", "png.c", "hyperspace.c", "prepatch.c", "display.c", "image.c"};
+const char *IOS_SOURCES[] = {"ios.m", "settings.m", "touch.m", "gltex.c",
+                             "gamedata.c"};  // scenes, saves, logs, ftl.dat; settings; touch; big textures; the mod fix-up
 const uint32_t MACCATALYST_PLATFORM = 6;
 
 struct Result
@@ -147,7 +147,9 @@ void BuildDylib(const std::string &sdk, const std::string &target, const fs::pat
         args.insert(args.end(), {"-framework", "UniformTypeIdentifiers", "-framework", "OpenGLES", "-framework",
                                  "QuartzCore", "-framework", "CoreGraphics", "-lz"});
     else
-        args.push_back("-Wl,-U,_IosStartLog");  // hooks.c's weak call into ios.m, left out here
+        // hooks.c's weak calls into ios.m, left out here
+        args.insert(args.end(), {"-Wl,-U,_IosStartLog", "-Wl,-U,_IosPrepareGameData", "-Wl,-U,_IosMakeFilesUsable",
+                                 "-Wl,-U,_IosGameDataFile"});
     args.insert(args.end(), {"-dynamiclib", "-install_name", std::string("@executable_path/Frameworks/") + DYLIB_NAME});
     for (const char *s : SOURCES) args.push_back((ROOT / "src" / s).string());
     if (iosSources)

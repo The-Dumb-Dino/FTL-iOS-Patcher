@@ -560,6 +560,14 @@ static void RightButton(int action, Finger *f)
     HyperspaceRightButton(action, (int)lround(p.x * k), (int)lround(p.y * k));
 }
 
+static NSTimer *gHoldTimer;  // a two-finger hold in the main menu opens settings
+
+static void HoldCancel(void)
+{
+    [gHoldTimer invalidate];
+    gHoldTimer = nil;
+}
+
 static void GestureBegin(int a, int b)
 {
     gMode = M_GESTURE;
@@ -571,6 +579,21 @@ static void GestureBegin(int a, int b)
     gAnchor = CGPointMake(gHost.x0 + mid.x / gZ0, gHost.y0 + mid.y / gZ0);
     gGt0 = CACurrentMediaTime();
     gGmove = 0;
+    // The home screen's quick action is the usual way; a host that runs the game as a
+    // guest (LiveContainer) registers its own, so the menu gets a hold too.
+    HoldCancel();
+    if (!AtTopMenu() || SettingsShowing()) return;
+    gHoldTimer = [NSTimer scheduledTimerWithTimeInterval:0.7
+                                                 repeats:NO
+                                                   block:^(NSTimer *t) {
+                                                       gHoldTimer = nil;
+                                                       if (gMode != M_GESTURE || gGmove >= 18 || !AtTopMenu()) return;
+                                                       gGa = gGb = -1;  // the gesture is over, the fingers aren't
+                                                       gMode = M_IDLE;
+                                                       Haptic(UIImpactFeedbackStyleMedium);
+                                                       fprintf(stderr, "[ftlios] two-finger hold: settings\n");
+                                                       SettingsShow();
+                                                   }];
 }
 
 static void GestureUpdate(void)
@@ -579,6 +602,7 @@ static void GestureUpdate(void)
     CGFloat m =
         MAX(hypot(a->at.x - a->start.x, a->at.y - a->start.y), hypot(b->at.x - b->start.x, b->at.y - b->start.y));
     gGmove = MAX(gGmove, m);
+    if (gHoldTimer && gGmove >= 18) HoldCancel();  // a pinch or a drag, not a hold
     if (!OptBool(kTouchPinchZoom, YES)) return;  // still a two-finger tap, the view stays
     CGFloat z = MIN(ZOOM_MAX, MAX(1, gZ0 * Dist(a, b) / gD0));
     CGPoint mid = CGPointMake((a->at.x + b->at.x) / 2, (a->at.y + b->at.y) / 2);
@@ -587,6 +611,7 @@ static void GestureUpdate(void)
 
 static void GestureEnd(void)
 {
+    HoldCancel();
     CFTimeInterval dur = CACurrentMediaTime() - gGt0;
     if (dur < 0.35 && gGmove < 18)
     {  // a two-finger tap

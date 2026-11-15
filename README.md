@@ -9,8 +9,9 @@ The patcher run on all major Desktop platforms with a future web version planned
 
 - **iPhone and iPad:** All iOS evices, even the new iPhone Duo.
 - **Touch experience:** (optional) Zooming options for small screens, a magnifier whilst touching, two-finger tap to pause, automatic zoom when certain in-game menus open, larger event text, immediate continue upon launch, dual-screen support for the iPhone Duo.
-- **Settings:** export and import saves, Game Center toggle, touch options, log exports.
+- **Settings:** export and import saves, Game Center toggle, touch options, log exports, the game's data file. Opened from the home screen's Settings quick action, or by holding two fingers still in the game's main menu.
 - **Saves accessible in Files:** Save files can be individually picked in the files app on your device now, no longer in private app files.
+- **Game data in Files:** the logs and `ftl.dat` are in the Files app too (On My iPhone › FTL › Logs and Game Data). Apps and computers can read them and replace `ftl.dat`; FTL fixes up mods' images in it each time it starts, so a patched `ftl.dat` from another app works.
 - **Modding:** FTL mods can be applied using [ftlman](https://github.com/afishhh/ftlman), [FTL: Hyperspace](https://github.com/FTL-Hyperspace/FTL-Hyperspace) can optionally be enabled too for mods like [FTL: Multiverse](https://ftlmultiverse.boards.net/) or Hyperspace improvements.
 
 Tested on an official Apple iOS 27.2 Simulator for iPhones, iPads and the iPhone Duo aswell as my personal M1 iPad Air, with Hyperspace 1.23.2 and Multiverse 5.5.1.
@@ -33,7 +34,7 @@ Download the latest patcher from the [releases](https://github.com/The-Dumb-Dino
 2. **FTL Modding:** (optional) point ftlman's to the unpacked ipa containing the ftl.dat, choose your mods (`Hyperspace.ftl` first when Hyperspace mods are used) and press Apply. Hyperspace is patched in when the mods include it.
 3. **Pack IPA:** If the mods include Hyperspace, choose its iOS build next to Hyperspace. Pack the IPA and install `<name>-patched.ipa` with your sideloading tool.
 
-To change mods, apply and then also pack once again. Note that a run might break after changing the mods.
+To change mods, apply and then also pack once again. Note that a run might break after changing the mods. `ftl.dat` itself is in the Files app, in `Game Data`; another app can replace or patch it there, and FTL applies the iPad mod fix-up at launch.
 
 **Bundle IDs**: sideloading tools automatically give apps an ID of your own, to allow installing next to the App Store version. To update the installed app with new mods or similar simply sideload it again without changing the boundle ID (each ID has its own saves).
 
@@ -41,7 +42,9 @@ To change mods, apply and then also pack once again. Note that a run might break
 
 **Command line**: `ftl-ios-patcher unpack FTL.ipa FOLDER`, then `ftl-ios-patcher pack FOLDER OUT.ipa [--name NAME] [--icon IMAGE] [--bundle-id ID] [--hyperspace DYLIB]`.
 
-**Troubleshooting**: Settings > Save Logs (Hyperspace's logs are in the Files app under FTL > Hyperspace). Stuck at "Waiting for Game Center": Settings > Game Center off.
+**Troubleshooting**: Settings > Save Logs (the session logs are in the Files app under FTL > Logs, Hyperspace's under FTL > Hyperspace). Stuck at "Waiting for Game Center": Settings > Game Center off.
+
+**LiveContainer**: the patched IPA also runs inside [LiveContainer](https://github.com/LiveContainer/LiveContainer); the game is loaded as a guest there, which the patch finds by the game's UUID instead of the process's executable. LiveContainer uses its own Info.plist and quick actions, so the Settings quick action is missing: hold two fingers still in the game's main menu for a moment. The guest app's logs and `ftl.dat` are in its `Documents/Logs` and `Documents/Game Data` (shown in the Files app).
 
 ## How it works
 
