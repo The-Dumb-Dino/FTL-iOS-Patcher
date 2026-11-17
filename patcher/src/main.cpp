@@ -2,9 +2,11 @@
 //
 //   ftl-ios-patcher unpack FTL.ipa FOLDER
 //   ftl-ios-patcher pack FOLDER OUT.ipa [--name NAME] [--icon IMAGE] [--bundle-id ID]
-//                        [--hyperspace DYLIB] [--files DIR]
+//                        [--hyperspace DYLIB] [--prepatch FILE] [--files DIR]
 // --hyperspace: Hyperspace's iOS build, needed when the mods include Hyperspace (releases don't
 // ship it); with its prepatch-hyperspace.ftlt next to it, if it has other hooks than the release's.
+// --prepatch: another prepatch template (.ftlt) than the release's (or the one next to the
+// Hyperspace build), e.g. for a build with other hooks.
 //
 // Between the two, mods can be applied to FOLDER with ftlman.
 #include <cstdio>
@@ -25,7 +27,7 @@ static int Usage()
                  "usage: ftl-ios-patcher                 (the window)\n"
                  "       ftl-ios-patcher unpack FTL.ipa FOLDER\n"
                  "       ftl-ios-patcher pack FOLDER OUT.ipa [--name NAME] [--icon IMAGE] [--bundle-id ID]\n"
-                 "                [--hyperspace DYLIB] [--files DIR]\n"
+                 "                [--hyperspace DYLIB] [--prepatch FILE] [--files DIR]\n"
                  "Between the two, apply mods to FOLDER with ftlman; Hyperspace is included when the mods have it,\n"
                  "and then needs its iOS build with --hyperspace.\n");
     return 2;
@@ -62,6 +64,8 @@ static int Cli(const std::vector<std::string> &args)
                     opt.bundleId = args[++i];
                 else if (a == "--hyperspace")
                     opt.hyperspace = U8Path(args[++i]);
+                else if (a == "--prepatch")
+                    opt.prepatch = U8Path(args[++i]);
                 else if (a == "--files")
                     files = U8Path(args[++i]);
                 else if (a == "--simulator")

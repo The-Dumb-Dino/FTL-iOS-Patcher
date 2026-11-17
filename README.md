@@ -1,7 +1,7 @@
 # FTL-iOS-Patcher
 
 This Patcher modified the iPad version of **FTL: Faster Than Light** (1.6.21). Allows FTL to run on **all** iOS devices (iPad, iPhone, Duo), QOL changes for smaller screens, an extra settings menu, save file importing & exporting, basic FTL-Modding, [FTL: Hyperspace](https://github.com/FTL-Hyperspace/FTL-Hyperspace).
-The patcher run on all major Desktop platforms with a future web version planned!
+The patcher runs on all major desktop platforms and in the browser.
 
 > Not affiliated with Subset Games. Neither the repository nor its releases contain any part of the game! You need your own decrypted ipa (see [Legal](#legal)).
 
@@ -48,13 +48,19 @@ To change mods, apply and then also pack once again. Note that a run might break
 
 **Bundle IDs**: sideloading tools automatically give apps an ID of your own, to allow installing next to the App Store version. To update the installed app with new mods or similar simply sideload it again without changing the boundle ID (each ID has its own saves).
 
-**Other Hyperspace builds**: they work as they are if they have the same hooks as the patcher's prepatch (the same version, or changes that don't add or move hooks). Otherwise put the `prepatch-hyperspace.ftlt` made for it (see [Building](#building)) next to its `.dylib`. On a mismatch, Hyperspace says so when the game starts.
+**Other Hyperspace builds**: they work as they are if they have the same hooks as the patcher's prepatch (the same version, or changes that don't add or move hooks). Otherwise put the `prepatch-hyperspace.ftlt` made for it (see [Building](#building)) next to its `.dylib`, or choose it under Prepatch in Advanced (or pass `--prepatch`). On a mismatch, Hyperspace says so when the game starts.
 
-**Command line**: `ftl-ios-patcher unpack FTL.ipa FOLDER`, then `ftl-ios-patcher pack FOLDER OUT.ipa [--name NAME] [--icon IMAGE] [--bundle-id ID] [--hyperspace DYLIB]`.
+**Command line**: `ftl-ios-patcher unpack FTL.ipa FOLDER`, then `ftl-ios-patcher pack FOLDER OUT.ipa [--name NAME] [--icon IMAGE] [--bundle-id ID] [--hyperspace DYLIB] [--prepatch FILE]`.
 
 **Troubleshooting**: Settings > Save Logs (the session logs are in the Files app under FTL > Logs, Hyperspace's under FTL > Hyperspace). Stuck at "Waiting for Game Center": Settings > Game Center off.
 
 **LiveContainer**: the patched IPA also runs inside [LiveContainer](https://github.com/LiveContainer/LiveContainer); the game is loaded as a guest there, which the patch finds by the game's UUID instead of the process's executable. LiveContainer uses its own Info.plist and quick actions, so the Settings quick action is missing: hold two fingers still in the game's main menu for a moment. The guest app's logs and `ftl.dat` are in its `Documents/Logs` and `Documents/Game Data` (shown in the Files app).
+
+## Web version
+
+The patcher also runs in the browser: **[the-dumb-dino.github.io/FTL-iOS-Patcher](https://the-dumb-dino.github.io/FTL-iOS-Patcher/)**. Choose the same decrypted 1.6.21 IPA, patch it and save the result. The IPA is never uploaded: the game's binary and Info.plist are patched by the same code as the desktop patcher (compiled to WebAssembly), and the other files are copied into the new zip as they are.
+
+In **Advanced** it can also change the name and icon, use another bundle ID, and add Hyperspace to the prepatch: choose its iOS build there. Hyperspace isn't included. Another prepatch template (`.ftlt`) can be given too, for a game or Hyperspace build with other hooks. An IPA whose mods are already in `ftl.dat` works too; the web version copies the dat as it is, without the fix-up step. It needs a current browser (WebAssembly and `DecompressionStream`; Safari 16.4 or newer).
 
 ## How it works
 
@@ -70,12 +76,12 @@ The patcher (`patcher/`, C++ with [wxWidgets](https://www.wxwidgets.org) and [mi
 cmake -S patcher -B patcher/build -DCMAKE_BUILD_TYPE=Release && cmake --build patcher/build
 ```
 
-For Windows from a Mac or Linux, add `-DCMAKE_TOOLCHAIN_FILE=cmake/mingw-w64.cmake`; `patcher/build-linux.sh` builds the Linux version in Docker.
+For Windows from a Mac or Linux, add `-DCMAKE_TOOLCHAIN_FILE=cmake/mingw-w64.cmake` (x86_64) or `cmake/mingw-w64-arm64.cmake` with [llvm-mingw](https://github.com/mstorsjo/llvm-mingw) in `PATH` (arm64); `patcher/build-linux.sh [arm64]` builds the Linux versions in Docker.
 
-A release needs a Mac with Xcode (and mingw-w64 and Docker for the Windows and Linux apps, or `--no-apps`). Build Hyperspace's iOS and macOS builds from the same commit of [FTL-Hyperspace-Dino](https://github.com/The-Dumb-Dino/FTL-Hyperspace-Dino) (`buildscripts/ios/build.sh device`, `buildscripts/macos/build.sh`), then:
+A release needs a Mac with Xcode (and mingw-w64, llvm-mingw and Docker for the Windows and Linux apps, or `--no-apps`). Build Hyperspace's iOS and macOS builds from the same commit of [FTL-Hyperspace-Dino](https://github.com/The-Dumb-Dino/FTL-Hyperspace-Dino) (`buildscripts/ios/build.sh device`, `buildscripts/macos/build.sh`), then:
 
 ```
-patcher/build/ftl-ios-release --ipa FTL.ipa --version 1.0.0 \
+patcher/build/ftl-ios-release --ipa FTL.ipa --version 1.2.0 \
     --hyperspace-ios <device build>/Hyperspace.1.6.21.arm64.dylib \
     --hyperspace-mac <macOS build>/Hyperspace.1.6.21.arm64.dylib \
     [--hyperspace-sim <simulator build>/Hyperspace.1.6.21.arm64.dylib]

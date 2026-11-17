@@ -24,8 +24,14 @@ void AddSegments(Bytes &data)
 size_t Apply(Bytes &data, const fs::path &templatePath, const Bytes &game)
 {
     Bytes t = ReadFile(templatePath);
-    if (t.size() < 56 || std::memcmp(t.data(), "FTLTMPL\0", 8) != 0)
+    if (t.size() < 8 || std::memcmp(t.data(), "FTLTMPL\0", 8) != 0)
         throw Error(U8Str(templatePath.filename()) + " isn't a prepatch template");
+    return Apply(data, t, game);
+}
+
+size_t Apply(Bytes &data, const Bytes &t, const Bytes &game)
+{
+    if (t.size() < 56 || std::memcmp(t.data(), "FTLTMPL\0", 8) != 0) throw Error("this isn't a prepatch template");
     uint32_t version = Rd32(&t[8]), nwords = Rd32(&t[12]), nrefs = Rd32(&t[16]), codeSize = Rd32(&t[20]);
     uint64_t hsVm = Rd64(&t[24]), hdVm = Rd64(&t[32]);
     if (version != 1) throw Error("unknown template version " + std::to_string(version));

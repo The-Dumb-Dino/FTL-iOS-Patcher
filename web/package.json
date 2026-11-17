@@ -1,0 +1,6 @@
+{
+  "name": "ftl-ios-patcher-web",
+  "private": true,
+  "type": "module",
+  "description": "The browser version of the FTL iOS Patcher (see ../README.md)"
+}

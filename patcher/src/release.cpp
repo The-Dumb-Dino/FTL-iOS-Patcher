@@ -5,9 +5,11 @@
 //     mode, src/prepatch.c), then turned into templates without any bytes of the game.
 //     That needs your decrypted IPA, and Hyperspace's macOS build from the same commit as
 //     its iOS build.
-// Then the patcher app is built for macOS, Windows (mingw-w64) and Linux (Docker), each
-// zipped with files/ into dist/. Hyperspace isn't in the zips: its iOS build is signed and
-// put into dist/ on its own, to hand out separately.
+// Then the patcher app is built for macOS, Windows (x86_64 and arm64) and Linux (x86_64
+// and arm64), each zipped with files/ into dist/. Hyperspace isn't in the zips: its iOS
+// build is signed and put into dist/ on its own, to hand out separately. Windows ARM64
+// needs llvm-mingw's aarch64-w64-mingw32 toolchain in PATH; the x86_64 builds use
+// mingw-w64, and Linux is built in Docker.
 //
 //   ftl-ios-release --ipa FTL.ipa --version 1.0.0 \
 //       --hyperspace-ios <device build>/Hyperspace.1.6.21.arm64.dylib \
@@ -244,13 +246,30 @@ void BuildApps(const std::string &version, const fs::path &files, const fs::path
     fs::create_directories(win);
     fs::copy_file(src / "build-windows" / "FTL iOS Patcher.exe", win / "FTL iOS Patcher.exe");
 
+    std::printf("==> Patcher app: Windows (arm64, cross-compiled with llvm-mingw)\n");
+    if (Run({"aarch64-w64-mingw32-g++", "--version"}).status)
+        Die("Windows ARM64 needs llvm-mingw's aarch64-w64-mingw32 toolchain in PATH (see the README)");
+    Must({"cmake", "-S", src.string(), "-B", (src / "build-windows-arm64").string(), "-G", "Ninja",
+          "-DCMAKE_BUILD_TYPE=Release",
+          "-DCMAKE_TOOLCHAIN_FILE=" + (src / "cmake" / "mingw-w64-arm64.cmake").string()});
+    Must({"cmake", "--build", (src / "build-windows-arm64").string(), "--target", "ftl-ios-patcher"});
+    fs::path winArm = stage / ("FTL-IOS-Patcher-" + version + "-Windows-arm64");
+    fs::create_directories(winArm);
+    fs::copy_file(src / "build-windows-arm64" / "FTL iOS Patcher.exe", winArm / "FTL iOS Patcher.exe");
+
     std::printf("==> Patcher app: Linux (x86_64, built in Docker)\n");
     Must({(src / "build-linux.sh").string()});
-    fs::path lin = stage / ("FTL-iOS-Patcher-" + version + "-Linux");
+    fs::path lin = stage / ("FTL-IOS-Patcher-" + version + "-Linux");
     fs::create_directories(lin);
     fs::copy_file(src / "build-linux" / "ftl-ios-patcher", lin / "ftl-ios-patcher");
 
-    for (const fs::path &folder : {mac, win, lin})
+    std::printf("==> Patcher app: Linux (arm64, built in Docker)\n");
+    Must({(src / "build-linux.sh").string(), "arm64"});
+    fs::path linArm = stage / ("FTL-IOS-Patcher-" + version + "-Linux-arm64");
+    fs::create_directories(linArm);
+    fs::copy_file(src / "build-linux-arm64" / "ftl-ios-patcher", linArm / "ftl-ios-patcher");
+
+    for (const fs::path &folder : {mac, win, winArm, lin, linArm})
     {
         CopyTree(files, folder / "files");
         fs::path zip = dist / (folder.filename().string() + ".zip");

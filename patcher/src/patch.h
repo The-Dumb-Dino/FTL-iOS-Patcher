@@ -26,6 +26,9 @@ struct PackOptions
     // prepatch-hyperspace.ftlt, is taken from next to it if it's there, else the release's,
     // which fits a build with the same hooks.
     fs::path hyperspace;
+    // Another prepatch template (.ftlt) than the release's, e.g. for a Hyperspace build with
+    // other hooks; empty: the release's (prepatch[-hyperspace].ftlt).
+    fs::path prepatch;
     bool simulator = false; // development: for the iOS Simulator (with simulator files)
 };
 

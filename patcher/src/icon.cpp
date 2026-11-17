@@ -139,10 +139,8 @@ Image ReadIcns(const Bytes &d, const std::string &what)
     throw Error(what + ": no image in this .icns that the patcher can read (only JPEG 2000 ones?)");
 }
 
-Image ReadImage(const fs::path &path)
+Image ReadImage(const Bytes &d, const std::string &what)
 {
-    Bytes d = ReadFile(path);
-    std::string what = U8Str(path.filename());
     if (d.size() >= 8 && std::memcmp(d.data(), "icns", 4) == 0) return ReadIcns(d, what);
     return DecodePng(d.data(), d.size(), what);
 }
@@ -207,9 +205,8 @@ Image ResizeImage(const Image &rows, size_t size)
 // The visible part of the image, center-cropped to a square, premultiplied. A macOS
 // icon is a rounded square with a transparent margin and a soft shadow, which would
 // be a black frame on iOS (iOS rounds the corners itself).
-Image LoadSquare(const fs::path &path, const Log &log)
+Image LoadSquare(Image rows, const Log &log)
 {
-    Image rows = ReadImage(path);
     size_t h = rows.size(), w = h ? rows[0].size() : 0;
     size_t left = 0, top = 0, right = w, bottom = h;
     std::vector<size_t> ys, xs;
@@ -271,19 +268,26 @@ Bytes Png(const Image &img)
 
 std::map<std::string, Bytes> Make(const fs::path &app, const fs::path &image, const Log &log)
 {
+    std::vector<std::string> names;
+    for (auto &entry : fs::directory_iterator(app)) names.push_back(U8Str(entry.path().filename()));
+    return Make(names, ReadFile(image), U8Str(image.filename()), log);
+}
+
+std::map<std::string, Bytes> Make(const std::vector<std::string> &names, const Bytes &image,
+                                  const std::string &imageName, const Log &log)
+{
     static const std::regex ICON_FILE(R"(AppIcon(\d+(?:\.\d+)?)x\d+(?:\.\d+)?(?:@(\d)x)?(?:~ipad)?\.png)");
     std::vector<std::pair<std::string, size_t>> targets;
-    for (auto &entry : fs::directory_iterator(app))
+    for (auto &name : names)
     {
-        std::string name = U8Str(entry.path().filename());
         std::smatch m;
         if (std::regex_match(name, m, ICON_FILE))
             targets.push_back(
                 {name, size_t(std::lround(std::stod(m[1].str()) * (m[2].matched ? std::stoi(m[2].str()) : 1)))});
     }
     if (targets.empty()) throw Error("the app has no AppIcon*.png files to replace");
-    Image img = LoadSquare(image, log);
-    if (img.empty()) throw Error(U8Str(image.filename()) + ": the image is empty");
+    Image img = LoadSquare(ReadImage(image, imageName), log);
+    if (img.empty()) throw Error(imageName + ": the image is empty");
     size_t biggest = 0;
     for (auto &t : targets) biggest = std::max(biggest, t.second);
     if (img.size() < biggest)

@@ -21,6 +21,7 @@ void AddSegments(Bytes &data);
 // Puts the template into `data` (prepared: segments added, not signed), filling the
 // references from `game` (the thin binary as it came). Returns the words changed in __TEXT.
 size_t Apply(Bytes &data, const fs::path &templatePath, const Bytes &game);
+size_t Apply(Bytes &data, const Bytes &tpl, const Bytes &game);
 
 struct Recording
 {

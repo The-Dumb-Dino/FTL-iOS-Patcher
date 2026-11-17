@@ -2,7 +2,7 @@
 #   cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build
 # wxWidgets and miniz are downloaded and linked in statically.
 cmake_minimum_required(VERSION 3.20)
-project(ftl-ios-patcher VERSION 1.0.0 LANGUAGES C CXX)
+project(ftl-ios-patcher VERSION 1.2.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -47,7 +47,7 @@ FetchContent_MakeAvailable(wxwidgets miniz)
 
 set(CORE_SOURCES
     src/util.cpp src/sha256.cpp src/macho.cpp src/prepatch.cpp src/plist.cpp
-    src/ftldat.cpp src/zipio.cpp src/icon.cpp src/patch.cpp stb_impl.cpp)
+    src/game.cpp src/ftldat.cpp src/zipio.cpp src/icon.cpp src/patch.cpp stb_impl.cpp)
 
 add_library(ftl-core STATIC ${CORE_SOURCES})
 target_include_directories(ftl-core PUBLIC src ${CMAKE_CURRENT_SOURCE_DIR}/../src/third_party)

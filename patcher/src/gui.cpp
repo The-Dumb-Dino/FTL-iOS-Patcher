@@ -33,8 +33,9 @@ public:
 
 private:
     wxPanel *panel;
-    wxTextCtrl *ipa, *name, *bundle, *icon, *hsDylib, *out, *log;
-    wxButton *chooseIpa, *unpackBtn, *openBtn, *copyBtn, *otherBtn, *chooseIcon, *chooseHs, *chooseOut, *packBtn;
+    wxTextCtrl *ipa, *name, *bundle, *icon, *hsDylib, *prepatch, *out, *log;
+    wxButton *chooseIpa, *unpackBtn, *openBtn, *copyBtn, *otherBtn, *chooseIcon, *chooseHs, *choosePrepatch,
+        *chooseOut, *packBtn;
     wxStaticText *folderText, *hsText;
     wxCheckBox *advanced;
     std::vector<wxWindow *> advancedWidgets;  // greyed out until "Advanced" is ticked
@@ -179,7 +180,12 @@ Frame::Frame() : wxFrame(nullptr, wxID_ANY, "FTL iOS Patcher"), pulse(this), pol
     grid->Add(bundle, 1, wxEXPAND);
     advancedWidgets.push_back(label("Icon:"));
     withButton(icon, chooseIcon, "Optional: a square PNG (1024x1024 is best) or a macOS .icns");
-    for (wxWindow *w : std::initializer_list<wxWindow *>{name, bundle, icon, chooseIcon}) advancedWidgets.push_back(w);
+    advancedWidgets.push_back(label("Prepatch:"));
+    withButton(prepatch, choosePrepatch, "Optional: another prepatch template (.ftlt)");
+    prepatch->SetToolTip("For a Hyperspace build with other hooks, or another prepatch than the release's. Without "
+                         "one, the patcher's prepatch is used (or the prepatch-hyperspace.ftlt next to Hyperspace).");
+    for (wxWindow *w : std::initializer_list<wxWindow *>{name, bundle, icon, chooseIcon, prepatch, choosePrepatch})
+        advancedWidgets.push_back(w);
     box3->Add(grid, 0, wxEXPAND | wxALL, gap);
     row = new wxBoxSizer(wxHORIZONTAL);
     gauge = new wxGauge(b3, wxID_ANY, 100, wxDefaultPosition, wxSize(FromDIP(160), -1));
@@ -239,6 +245,13 @@ Frame::Frame() : wxFrame(nullptr, wxID_ANY, "FTL iOS Patcher"), pulse(this), pol
                                       wxFD_OPEN | wxFD_FILE_MUST_EXIST);
                        if (d.ShowModal() == wxID_OK) hsDylib->SetValue(d.GetPath());
                    });
+    choosePrepatch->Bind(wxEVT_BUTTON,
+                         [this](wxCommandEvent &)
+                         {
+                             wxFileDialog d(this, "Choose a prepatch template", "", "", "Prepatch (*.ftlt)|*.ftlt",
+                                            wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+                             if (d.ShowModal() == wxID_OK) prepatch->SetValue(d.GetPath());
+                         });
     chooseOut->Bind(wxEVT_BUTTON,
                     [this](wxCommandEvent &)
                     {
@@ -407,6 +420,13 @@ void Frame::OnPack(wxCommandEvent &)
         opt.icon = U8Path(Utf8(icon->GetValue()));
         if (!fs::is_regular_file(opt.icon))
             return void(wxMessageBox("The icon " + icon->GetValue() + " isn't there.", "FTL iOS Patcher",
+                                     wxICON_WARNING, this));
+    }
+    if (adv && !prepatch->IsEmpty())
+    {
+        opt.prepatch = U8Path(Utf8(prepatch->GetValue()));
+        if (!fs::is_regular_file(opt.prepatch))
+            return void(wxMessageBox("The prepatch " + prepatch->GetValue() + " isn't there.", "FTL iOS Patcher",
                                      wxICON_WARNING, this));
     }
     if (!hsDylib->IsEmpty())

@@ -6,3 +6,10 @@ files/
 files-simulator/
 dist/
 patcher/build*/
+web/ftl-core.js
+web/ftl-core.wasm
+
+# The web build's copy of the release files is committed (GitHub Pages has no build step
+# outside the workflow, and the page loads them as they are)
+!web/files/
+!web/files/**
