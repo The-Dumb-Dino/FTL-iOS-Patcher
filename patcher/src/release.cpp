@@ -242,30 +242,30 @@ void BuildApps(const std::string &version, const fs::path &files, const fs::path
     Must({"cmake", "-S", src.string(), "-B", (src / "build-windows").string(), "-G", "Ninja",
           "-DCMAKE_BUILD_TYPE=Release", "-DCMAKE_TOOLCHAIN_FILE=" + (src / "cmake" / "mingw-w64.cmake").string()});
     Must({"cmake", "--build", (src / "build-windows").string(), "--target", "ftl-ios-patcher"});
-    fs::path win = stage / ("FTL-iOS-Patcher-" + version + "-Windows");
+    fs::path win = stage / ("FTL-iOS-Patcher-" + version + "-Windows-x86_64");
     fs::create_directories(win);
     fs::copy_file(src / "build-windows" / "FTL iOS Patcher.exe", win / "FTL iOS Patcher.exe");
 
-    std::printf("==> Patcher app: Windows (arm64, cross-compiled with llvm-mingw)\n");
+    std::printf("==> Patcher app: Windows (aarch64, cross-compiled with llvm-mingw)\n");
     if (Run({"aarch64-w64-mingw32-g++", "--version"}).status)
         Die("Windows ARM64 needs llvm-mingw's aarch64-w64-mingw32 toolchain in PATH (see the README)");
     Must({"cmake", "-S", src.string(), "-B", (src / "build-windows-arm64").string(), "-G", "Ninja",
           "-DCMAKE_BUILD_TYPE=Release",
           "-DCMAKE_TOOLCHAIN_FILE=" + (src / "cmake" / "mingw-w64-arm64.cmake").string()});
     Must({"cmake", "--build", (src / "build-windows-arm64").string(), "--target", "ftl-ios-patcher"});
-    fs::path winArm = stage / ("FTL-IOS-Patcher-" + version + "-Windows-arm64");
+    fs::path winArm = stage / ("FTL-IOS-Patcher-" + version + "-Windows-aarch64");
     fs::create_directories(winArm);
     fs::copy_file(src / "build-windows-arm64" / "FTL iOS Patcher.exe", winArm / "FTL iOS Patcher.exe");
 
     std::printf("==> Patcher app: Linux (x86_64, built in Docker)\n");
     Must({(src / "build-linux.sh").string()});
-    fs::path lin = stage / ("FTL-IOS-Patcher-" + version + "-Linux");
+    fs::path lin = stage / ("FTL-iOS-Patcher-" + version + "-Linux-x86_64");
     fs::create_directories(lin);
     fs::copy_file(src / "build-linux" / "ftl-ios-patcher", lin / "ftl-ios-patcher");
 
-    std::printf("==> Patcher app: Linux (arm64, built in Docker)\n");
+    std::printf("==> Patcher app: Linux (aarch64, built in Docker)\n");
     Must({(src / "build-linux.sh").string(), "arm64"});
-    fs::path linArm = stage / ("FTL-IOS-Patcher-" + version + "-Linux-arm64");
+    fs::path linArm = stage / ("FTL-IOS-Patcher-" + version + "-Linux-aarch64");
     fs::create_directories(linArm);
     fs::copy_file(src / "build-linux-arm64" / "ftl-ios-patcher", linArm / "ftl-ios-patcher");
 
