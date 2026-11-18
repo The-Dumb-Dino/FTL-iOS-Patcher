@@ -28,7 +28,7 @@ Tested on an official Apple iOS 27.2 Simulator for iPhones, iPads and the iPhone
 This is a hobby project done in my spare time. If you find it useful and want
 to say thanks, you can buy me a coffee:
 
-[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)]([https://ko-fi.com/DEINNAME](https://ko-fi.com/thedumbdino))
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/thedumbdino)
 
 Donations are never expected; Bug reports, logs, and well-written issues are
 just as valuable.
